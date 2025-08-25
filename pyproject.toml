@@ -1,0 +1,46 @@
+[tool.ruff]
+line-length = 99
+extend-exclude = ["migrations"]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "FIX",   # flake8-fixme
+    "TD",    # flake8-todos
+    "T20",   # flake8-print
+    "D",     # pydocstyle
+    "ANN",   # flake8-annotations
+    "DJ",    # flake8-django
+    "COM812" # flake8-commas
+]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.ruff.lint.isort]
+known-first-party = []
+combine-as-imports = true
+force-sort-within-sections = false
+force-single-line = false
+lines-after-imports = 2
+
+[project]
+name = "draft-python-api"
+version = "1.0.0"
+description = "Draft python API"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "aiogram==3.*",
+    "fastapi==0.*",
+    "gunicorn==23.*",
+    "pydantic==2.*",
+    "pydantic-settings==2.*",
+    "uvicorn==0.*",
+]
+
+[dependency-groups]
+dev = [
+    "ruff==0.*",
+]
