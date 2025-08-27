@@ -15,6 +15,11 @@ ignore = [
     "COM812" # flake8-commas
 ]
 
+[tool.ruff.lint.per-file-ignores]
+"src/tests/*" = [
+    "S101"  # Use of `assert` detected
+]
+
 [tool.ruff.format]
 quote-style = "double"
 
@@ -24,6 +29,10 @@ combine-as-imports = true
 force-sort-within-sections = false
 force-single-line = false
 lines-after-imports = 2
+
+[tool.pytest.ini_options]
+testpaths = ["src/tests"]
+addopts = "-ra -q -s"
 
 [project]
 name = "draft-python-api"
@@ -42,5 +51,6 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "pytest==8.*",
     "ruff==0.*",
 ]
