@@ -1,0 +1,102 @@
+name: Python CI
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+      - bugfix/*
+      - feature/*
+      - chore/*
+
+env:
+  DOCKER_STAGING_TARGET: staging
+  DOCKER_RUNTIME_TARGET: runtime
+
+jobs:
+  pre-setup:
+    name: ${{ github.event.pull_request.head.ref || github.ref_name }}
+    uses: ./.github/workflows/pre-setup.yaml
+    with:
+      branchRef: ${{ github.event.pull_request.head.ref || github.ref_name }}
+
+  build:
+    needs: pre-setup
+    name: Build >>> ${{ needs.pre-setup.outputs.shouldSkipBuild == 'true' && 'Skipped >>>' || '' }} ${{ needs.pre-setup.outputs.appTag }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        if: needs.pre-setup.outputs.shouldSkipBuild != 'true'
+        uses: actions/checkout@v4
+
+      - name: Release
+        if: github.ref == 'refs/heads/master'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.pre-setup.outputs.appTag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git commit -m "bump(release): $VERSION [skip ci]"
+          git tag "$VERSION"
+          git push origin HEAD --tags
+          echo "Created release: $VERSION"
+
+      - name: Read Application Metadata
+        if: needs.pre-setup.outputs.shouldSkipBuild != 'true'
+        id: app-metadata
+        uses: ./.github/actions/read-tfvars
+
+      - name: Build staging image
+        if: needs.pre-setup.outputs.shouldSkipBuild != 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          target: ${{ env.DOCKER_STAGING_TARGET }}
+          tags: |
+            ${{ steps.app-metadata.outputs.serviceName }}:${{ env.DOCKER_STAGING_TARGET }}
+          push: false
+
+      - name: Bring up Compose Environment
+        if: needs.pre-setup.outputs.shouldSkipBuild != 'true'
+        uses: ./.github/actions/bring-up-compose
+        with:
+          compose-file: docker-compose.ci.yaml
+
+      - name: Run Code Checks
+        if: needs.pre-setup.outputs.shouldSkipBuild != 'true'
+        shell: bash
+        env:
+          STAGING_IMAGE: "${{ steps.app-metadata.outputs.serviceName }}:${{ env.DOCKER_STAGING_TARGET }}"
+        run: |
+          set -euo pipefail
+
+          NETWORK=$(docker network ls --format '{{.Name}}' | grep -m1 '_default' || true)
+          if [ -z "$NETWORK" ]; then
+            docker run --rm "$STAGING_IMAGE"
+          else
+            echo "Attaching to network: $NETWORK"
+            docker run --rm --network "$NETWORK" "$STAGING_IMAGE"
+          fi
+
+      - name: Login Docker Registry
+        if: needs.pre-setup.outputs.shouldSkipBuild != 'true'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Push Runtime Image
+        if: needs.pre-setup.outputs.shouldSkipBuild != 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          target: ${{ env.DOCKER_RUNTIME_TARGET }}
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/${{ steps.app-metadata.outputs.serviceName }}:${{ needs.pre-setup.outputs.appTag }}

@@ -1,0 +1,38 @@
+name: "Read Service TF Vars"
+inputs:
+  service-tfvars-file:
+    description: "Path to the service.tfvars file"
+    default: "tf-infra/tfvars/service.tfvars"
+
+outputs:
+  serviceName:
+    description: "The service_name from the tfvars file"
+    value: ${{ steps.read-tfvars.outputs.serviceName }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Read service_name from ${{ inputs.service-tfvars-file }}
+      id: read-tfvars
+      shell: bash
+      env:
+        TF_FILE: ${{ inputs.service-tfvars-file }}
+      run: |
+        set -euo pipefail
+
+        if [ ! -f "$TF_FILE" ]; then
+          echo "Error: $TF_FILE not found"
+          exit 1
+        fi
+
+        SERVICE_NAME=$(jq -r '.service_name' "$TF_FILE" 2>/dev/null) || {
+          echo "Error: Failed to parse JSON in $TF_FILE. Make sure it is valid JSON."
+          exit 1
+        }
+
+        if [ -z "$SERVICE_NAME" ] || [ "$SERVICE_NAME" = "null" ]; then
+          echo "Error: service_name not found in tfvars"
+          exit 1
+        fi
+
+        echo "serviceName=$SERVICE_NAME" >> $GITHUB_OUTPUT

@@ -1,0 +1,39 @@
+name: "Docker Compose Up"
+description: "Bring up docker-compose file"
+
+inputs:
+  compose-file:
+    description: "Path to docker-compose file"
+    required: true
+
+outputs:
+  isFileFound:
+    description: "Flag indicating whether the compose file was found"
+    value: ${{ steps.pre-setup.outputs.isFileFound }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check For File / Get Services
+      id: pre-setup
+      shell: bash
+      env:
+        COMPOSE_FILE: ${{ inputs.compose-file }}
+      run: |
+        set -euo pipefail
+
+        if [ -f "$COMPOSE_FILE" ]; then
+          echo "isFileFound=true" >> $GITHUB_OUTPUT
+          echo "Docker compose $COMPOSE_FILE found, starting..."
+        else
+          echo "isFileFound=false" >> $GITHUB_OUTPUT
+          echo "Docker compose $COMPOSE_FILE not found, skipping..."
+        fi
+
+    - name: Start Docker Compose
+      if: steps.pre-setup.outputs.isFileFound == 'true'
+      uses: isbang/compose-action@v2
+      with:
+        compose-file: ${{ inputs.compose-file }}
+        up-flags: -d
+        down-flags: -v

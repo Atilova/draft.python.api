@@ -1,0 +1,19 @@
+{
+  "extends": ["@commitlint/config-conventional"],
+  "rules": {
+    "type-enum": [2, "always", ["feat","fix","chore","ci","docs","style","refactor","perf","test"]],
+    "type-case": [0, "always"],
+    "type-empty": [2, "never"],
+    "subject-empty": [2, "never"],
+    "subject-case": [0, "never"],
+    "header-max-length": [2, "always", 100]
+  },
+  "parserPreset": {
+    "name": "conventional-changelog-conventionalcommits",
+    "parserOpts": {
+      "headerPattern": "^([a-zA-Z0-9]+)(?:\\(([\\w\\s\\-/.@]*)\\))?(!)?:\\s(.+)$",
+      "headerCorrespondence": ["type", "scope", "breaking", "subject"],
+      "noteKeywords": ["BREAKING CHANGE", "BREAKING CHANGES"]
+    }
+  }
+}
