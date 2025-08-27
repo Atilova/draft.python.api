@@ -1,0 +1,104 @@
+name: Python CI
+
+on:
+  push:
+    branches:
+      - master
+      - bugfix/*
+      - feature/*
+      - chore/*
+  pull_request:
+    branches:
+      - master
+
+env:
+  BRANCH_REF: ${{ github.event.pull_request.head.ref || github.ref_name }}
+
+jobs:
+  pre-setup:
+    name: Pre-setup >>> ${{ github.event.pull_request.head.ref || github.ref_name }}
+    runs-on: ubuntu-latest
+    outputs:
+      appTag: ${{ steps.apptag.outputs.appTag }}
+      shouldSkipBuild: ${{ steps.prcheck.outputs.shouldSkipBuild }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Commit / Compute Version
+        id: semver
+        uses: ietf-tools/semver-action@v1
+        with:
+          token: ${{ github.token }}
+          branch: ${{ env.BRANCH_REF }}
+          minorList: "feat"
+          patchList: "fix,chore,ci,docs,style,refactor,perf,test"
+
+      - name: Compute Application Tag
+        id: apptag
+        run: |
+          set -euo pipefail
+
+          if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
+            COMMIT_SHA="$(jq -r .pull_request.head.sha < "${GITHUB_EVENT_PATH}")"
+          else
+            COMMIT_SHA=$GITHUB_SHA
+          fi
+
+          VERSION="$nextStrict"
+          SHORT_SHA="${COMMIT_SHA:0:7}"
+
+          if [[ "$GITHUB_REF" == "refs/heads/master" ]]; then
+            TAG="$VERSION"
+          elif [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            PR_NUMBER="$(jq -r .number < "${GITHUB_EVENT_PATH}")"
+            TAG="PR.${PR_NUMBER}-${VERSION}-${SHORT_SHA}"
+          else
+            TAG="BR-${VERSION}-${SHORT_SHA}"
+          fi
+
+          echo "appTag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Check If PR Exists
+        id: prcheck
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          gh auth status || exit 1
+
+          echo "shouldSkipBuild=false" >> $GITHUB_OUTPUT
+
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            prs=$(gh pr list \
+              --repo "$GITHUB_REPOSITORY" \
+              --head "$BRANCH_REF" \
+              --base 'master' \
+              --json title \
+              --jq 'length')
+
+            if ((prs > 0)); then
+              echo "shouldSkipBuild=true" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+  build:
+    needs: pre-setup
+    name: Build >>> ${{ needs.pre-setup.outputs.shouldSkipBuild == 'true' && 'Skipped >>>' || '' }} ${{ needs.pre-setup.outputs.appTag }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        if: ${{ needs.pre-setup.outputs.shouldSkipBuild != 'true' }}
+        uses: actions/checkout@v4
+
+      - name: Build staging image
+        if: ${{ needs.pre-setup.outputs.shouldSkipBuild != 'true' }}
+        run: |
+          echo "Docker Tag: ${{ needs.pre-setup.outputs.appTag }}"
+          docker build -f docker/Dockerfile --target staging -t draft.python.api:staging .
+
+      - name: Run checks
+        if: ${{ needs.pre-setup.outputs.shouldSkipBuild != 'true' }}
+        run: |
+          docker run --rm draft.python.api:staging
