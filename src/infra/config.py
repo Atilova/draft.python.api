@@ -8,7 +8,9 @@ class GunicornConfig(BaseModel):
     bind: str = "0.0.0.0:8000"
     workers: int = 1
     threads: int = 8
-    worker_class: Literal["uvicorn.workers.UvicornWorker"] = "uvicorn.workers.UvicornWorker"
+    worker_class: Literal["uvicorn.workers.UvicornWorker"] = Field(
+        alias="workerClass", default="uvicorn.workers.UvicornWorker"
+    )
     loglevel: str = "info"
     timeout: int = 60
     access_logs: bool = Field(alias="accessLogs", default=False)
@@ -25,7 +27,10 @@ class DatabaseConfig(BaseModel):
 
 
 class Config(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="cf__", env_nested_delimiter="__")
+    model_config = SettingsConfigDict(
+        env_prefix="cf__",
+        env_nested_delimiter="__",
+    )
 
     gunicorn: GunicornConfig = Field(default_factory=GunicornConfig)
     database: DatabaseConfig = Field(default_factory=DatabaseConfig)
