@@ -8,7 +8,7 @@ def test_true_is_true():
         status = response.status
         data = response.read().decode("utf-8")
 
-    print("Status code ->", status)
-    print("Response body ->", data)
+    print("Status code: ", status)
+    print("Response body: ", data)
 
     assert result
