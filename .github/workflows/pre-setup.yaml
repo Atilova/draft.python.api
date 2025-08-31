@@ -1,0 +1,117 @@
+name: Pre-setup Workflow
+
+on:
+  workflow_call:
+    inputs:
+      branchRef:
+        type: string
+        required: true
+      pushCompareBranch:
+        type: string
+        required: false
+        default: ""
+
+    outputs:
+      appTag:
+        description: "Computed application tag"
+        value: ${{ jobs.pre-setup.outputs.appTag }}
+      shouldSkipBuild:
+        description: "Whether main build should be skipped"
+        value: ${{ jobs.pre-setup.outputs.shouldSkipBuild }}
+
+jobs:
+  pre-setup:
+    runs-on: ubuntu-latest
+    outputs:
+      appTag: ${{ steps.app-tag.outputs.appTag }}
+      shouldSkipBuild: ${{ steps.pr-check.outputs.shouldSkipBuild }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Lint Commits
+        env:
+          PUSH_COMPARE_BRANCH: ${{ inputs.pushCompareBranch || github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+
+          if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
+            FROM="${{ github.event.pull_request.base.sha }}"
+            TO="${{ github.event.pull_request.head.sha }}"
+          else
+            git fetch origin '+HEAD:refs/remotes/origin/HEAD' || true
+            FROM="origin/$PUSH_COMPARE_BRANCH"
+            TO="HEAD"
+          fi
+
+          echo "From: $FROM"
+          echo "To:   $TO"
+          echo "Commits count: $(git rev-list --count ${FROM}..${TO} 2>/dev/null || echo 0)"
+
+          npm install --no-save @commitlint/cli@18.6.0 @commitlint/config-conventional@18.6.0
+          npx commitlint  --config .github/workflows/commitlint.config.json  --from "$FROM" --to "$TO" --verbose
+
+      - name: Compute Sematic Version
+        id: semver
+        uses: ietf-tools/semver-action@v1
+        with:
+          token: ${{ github.token }}
+          branch: ${{ inputs.branchRef }}
+          minorList: "feat"
+          patchList: "fix,chore,ci,docs,style,refactor,perf,test"
+
+      - name: Compute Application Tag
+        id: app-tag
+        shell: bash
+        env:
+          VERSION: ${{ steps.semver.outputs.nextStrict }}
+        run: |
+          set -euo pipefail
+
+          if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
+            COMMIT_SHA="$(jq -r .pull_request.head.sha < "$GITHUB_EVENT_PATH")"
+          else
+            COMMIT_SHA=$GITHUB_SHA
+          fi
+          SHORT_SHA="${COMMIT_SHA:0:7}"
+
+          if [[ "$GITHUB_REF" == "refs/heads/master" ]]; then
+            TAG="$VERSION"
+          elif [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            PR_NUMBER="$(jq -r .number < "$GITHUB_EVENT_PATH")"
+            TAG="PR.${PR_NUMBER}-${VERSION}-${SHORT_SHA}"
+          else
+            TAG="BR-${VERSION}-${SHORT_SHA}"
+          fi
+
+          echo "Computed application tag: $TAG"
+          echo "appTag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Check If PR Exists
+        id: pr-check
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          BRANCH_REF: ${{ inputs.branchRef }}
+        run: |
+          set -euo pipefail
+
+          gh auth status || exit 1
+
+          echo "shouldSkipBuild=false" >> $GITHUB_OUTPUT
+
+          if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF" != "refs/heads/master" ]]; then
+            prs=$(gh pr list \
+              --repo "$GITHUB_REPOSITORY" \
+              --head "$BRANCH_REF" \
+              --base 'master' \
+              --json title \
+              --jq 'length')
+
+            if ((prs > 0)); then
+              echo "shouldSkipBuild=true" >> $GITHUB_OUTPUT
+              echo "PR exists for branch!"
+            fi
+          fi
