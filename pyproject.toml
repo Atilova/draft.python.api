@@ -1,23 +1,38 @@
+[tool.alembic]
+script_location = "%(here)s/migrations"
+prepend_sys_path = [
+    "."
+]
+timezone = "utc"
+
 [tool.ruff]
 line-length = 99
-extend-exclude = ["migrations"]
+extend-exclude = ["migrations/versions"]
 target-version = "py312"
 
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
-    "FIX",   # flake8-fixme
-    "TD",    # flake8-todos
-    "T20",   # flake8-print
-    "D",     # pydocstyle
-    "ANN",   # flake8-annotations
-    "DJ",    # flake8-django
-    "COM812" # flake8-commas
+    "FIX",    # flake8-fixme
+    "TD",     # flake8-todos
+    "T20",    # flake8-print
+    "D",      # pydocstyle
+    "ANN",    # flake8-annotations
+    "DJ",     # flake8-django
+    "COM812", # flake8-commas
+    "B008",   # Do not perform function calls in argument defaults
+    "N811",   # Imported as non-constant
+    "RET504", # Unnecessary assignment before return statement\
+    "ERA001", # Found commented-out code
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "src/tests/*" = [
     "S101"  # Use of `assert` detected
+]
+"migrations/*" = [
+    "INP001",  # Add an `__init__.py`
+    "ARG001"   # Unused function argument
 ]
 
 [tool.ruff.format]
@@ -42,10 +57,15 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "aiogram==3.*",
+    "alembic==1.*",
+    "asyncpg==0.*",
     "fastapi==0.*",
+    "fastapi-injector==0.*",
     "gunicorn==23.*",
+    "jwcrypto==1.*",
     "pydantic==2.*",
     "pydantic-settings==2.*",
+    "sqlalchemy==2.*",
     "uvicorn==0.*",
 ]
 

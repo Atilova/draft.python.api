@@ -1,4 +1,4 @@
-from src.infra.config import load_config
+from src.draftpythonapi.config import load_config
 
 
 _config = load_config()

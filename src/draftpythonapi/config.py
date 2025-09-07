@@ -3,6 +3,8 @@ from typing import Literal
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from src.draftpythonapi.db import DatabaseConfig
+
 
 class GunicornConfig(BaseModel):
     bind: str = "0.0.0.0:8000"
@@ -15,15 +17,6 @@ class GunicornConfig(BaseModel):
     timeout: int = 60
     access_logs: bool = Field(alias="accessLogs", default=False)
 
-
-class DatabaseConfig(BaseModel):
-    class _Pool(BaseModel):
-        size: int = 1
-        conn_recycle_seconds: int = Field(alias="connRecycleSeconds", default=600)
-
-    username: str = "draft.python.api"
-    password: str = "draft.python.api"  # noqa: S105
-    pool: _Pool = Field(default_factory=_Pool)
 
 
 class Config(BaseSettings):
