@@ -81,9 +81,9 @@ jobs:
             TAG="$VERSION"
           elif [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
             PR_NUMBER="$(jq -r .number < "$GITHUB_EVENT_PATH")"
-            TAG="PR.${PR_NUMBER}-${VERSION}-${SHORT_SHA}"
+            TAG="${VERSION}-PR.${PR_NUMBER}-${SHORT_SHA}"
           else
-            TAG="BR-${VERSION}-${SHORT_SHA}"
+            TAG="${VERSION}-BR-${SHORT_SHA}"
           fi
 
           echo "Computed application tag: $TAG"

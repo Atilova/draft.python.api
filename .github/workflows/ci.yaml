@@ -27,7 +27,8 @@ jobs:
 
   build:
     needs: pre-setup
-    name: Build >>> ${{ needs.pre-setup.outputs.shouldSkipBuild == 'true' && 'Skipped >>>' || '' }} ${{ needs.pre-setup.outputs.appTag }}
+    name: Build / ${{ needs.pre-setup.outputs.shouldSkipBuild == 'true' && 'Skipped / ' || '' }}${{ needs.pre-setup.outputs.appTag }}
+
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
