@@ -18,3 +18,9 @@ venv
 
 # Pytest-generated files
 .pytest_cache
+
+# Deployment & Terraform files
+deploy/.*
+terraform.tfstate
+terraform.tfstate.backup
+secret.tfvars

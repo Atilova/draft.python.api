@@ -1,8 +1,8 @@
 name: "Read Service TF Vars"
 inputs:
   service-tfvars-file:
-    description: "Path to the service.tfvars file"
-    default: "deploy/vars/service.tfvars"
+    description: "Path to the service.tfvars.json file"
+    default: "deploy/vars/service.tfvars.json"
 
 outputs:
   serviceName:

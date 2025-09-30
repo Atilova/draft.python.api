@@ -12,7 +12,10 @@ ignore = [
     "D",     # pydocstyle
     "ANN",   # flake8-annotations
     "DJ",    # flake8-django
-    "COM812" # flake8-commas
+    "COM812", # flake8-commas
+    "B008",
+    "S105",
+    "FAST002"
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -44,8 +47,10 @@ dependencies = [
     "aiogram==3.*",
     "fastapi==0.*",
     "gunicorn==23.*",
+    "prometheus-client==0.*",
     "pydantic==2.*",
     "pydantic-settings==2.*",
+    "requests>=2.32.5",
     "uvicorn==0.*",
 ]
 

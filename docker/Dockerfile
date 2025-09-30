@@ -43,13 +43,13 @@ COPY --from=builder --chown=app:app /app/.venv/ /app/.venv/
 COPY --from=builder --chown=app:app /app/src/ /app/src/
 COPY --from=builder --chown=app:app /app/main.py /app/main.py
 COPY --from=builder --chown=app:app /app/gunicorn.conf.py /app/gunicorn.conf.py
-COPY docker/entrypoint.sh /app/entrypoint.sh
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint
 
-RUN chmod +x /app/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint
 
 EXPOSE 8000
 
-ENTRYPOINT ["/app/entrypoint.sh"]
+ENTRYPOINT ["entrypoint"]
 CMD ["gunicorn", "main:app", "--config=gunicorn.conf.py"]
 
 

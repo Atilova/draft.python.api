@@ -1,4 +1,4 @@
-.PHONY: help ci fix-lint diff-lint
+.PHONY: help ci fix-lint diff-lint tf-init tf-plan tf-apply
 
 help:
 	@echo "Available targets:"
@@ -23,3 +23,19 @@ diff-lint:
 	@echo "Checking linting issues with ruff..."
 	ruff --config pyproject.toml check src/ main.py gunicorn.conf.py
 	ruff --config pyproject.toml format --diff src/ main.py gunicorn.conf.py
+
+tf-init:
+	cd deploy/ && \
+	terraform init
+
+tf-plan:
+	cd deploy/ && \
+	DOCKER_HOST=unix:///tmp/docker.sock terraform plan -var-file="vars/service.tfvars.json" -var-file="vars/secret.tfvars"
+
+tf-apply:
+	cd deploy/ && \
+	DOCKER_HOST=unix:///tmp/docker.sock terraform apply -auto-approve -var-file="vars/service.tfvars.json" -var-file="vars/secret.tfvars"
+
+tf-destroy:
+	cd deploy/ && \
+	DOCKER_HOST=unix:///tmp/docker.sock terraform destroy -auto-approve -var-file="vars/service.tfvars.json" -var-file="vars/secret.tfvars"

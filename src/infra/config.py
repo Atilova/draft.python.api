@@ -22,7 +22,7 @@ class DatabaseConfig(BaseModel):
         conn_recycle_seconds: int = Field(alias="connRecycleSeconds", default=600)
 
     username: str = "draft.python.api"
-    password: str = "draft.python.api"  # noqa: S105
+    password: str = "draft.python.api"
     pool: _Pool = Field(default_factory=_Pool)
 
 
