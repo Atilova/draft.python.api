@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 env:
-  DOCKER_STAGING_TARGET: staging
+  DOCKER_CI_TARGET: ci
   DOCKER_RUNTIME_TARGET: runtime
 
 jobs:
@@ -59,9 +59,9 @@ jobs:
         with:
           context: .
           file: docker/Dockerfile
-          target: ${{ env.DOCKER_STAGING_TARGET }}
+          target: ${{ env.DOCKER_CI_TARGET }}
           tags: |
-            ${{ steps.app-metadata.outputs.serviceName }}:${{ env.DOCKER_STAGING_TARGET }}
+            ${{ steps.app-metadata.outputs.serviceName }}:${{ env.DOCKER_CI_TARGET }}
           push: false
 
       - name: Bring up Compose Environment
@@ -74,16 +74,16 @@ jobs:
         if: needs.pre-setup.outputs.shouldSkipBuild != 'true'
         shell: bash
         env:
-          STAGING_IMAGE: "${{ steps.app-metadata.outputs.serviceName }}:${{ env.DOCKER_STAGING_TARGET }}"
+          CI_IMAGE: "${{ steps.app-metadata.outputs.serviceName }}:${{ env.DOCKER_CI_TARGET }}"
         run: |
           set -euo pipefail
 
           NETWORK=$(docker network ls --format '{{.Name}}' | grep -m1 '_default' || true)
           if [ -z "$NETWORK" ]; then
-            docker run --rm "$STAGING_IMAGE"
+            docker run --rm "$CI_IMAGE"
           else
             echo "Attaching to network: $NETWORK"
-            docker run --rm --network "$NETWORK" "$STAGING_IMAGE"
+            docker run --rm --network "$NETWORK" "$CI_IMAGE"
           fi
 
       - name: Login Docker Registry

@@ -53,7 +53,7 @@ ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["gunicorn", "main:app", "--config=gunicorn.conf.py"]
 
 
-FROM runtime AS staging
+FROM runtime AS ci
 
 RUN apk add --no-cache make
 
